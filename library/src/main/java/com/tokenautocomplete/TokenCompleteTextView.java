@@ -225,6 +225,7 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
                 CharSequence charSequence = text.subSequence(start, end);
                 filter.filter(charSequence, this);
 
+                // PexLabs
                 if (listener != null) {
                     listener.onTextChanged(charSequence.toString());
                 }
@@ -829,6 +830,11 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
 
         // Collapse the view to a single line
         if (allowCollapse) performCollapse(hasFocus);
+
+        // PexLabs
+        if (!hasFocus) {
+            clearSelections();
+        }
     }
 
     @SuppressWarnings("unchecked cast")
