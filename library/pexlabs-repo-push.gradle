@@ -23,7 +23,7 @@ def isReleaseBuild() {
 
 def getReleaseRepositoryUrl() {
     return hasProperty('RELEASE_REPOSITORY_URL') ? RELEASE_REPOSITORY_URL
-            : "https://repo.pexlabs.com/content/repositories/thirdparty/"
+            : "https://repo.astro-inc.com/content/repositories/thirdparty/"
 }
 
 /*
