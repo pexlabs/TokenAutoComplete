@@ -1010,10 +1010,11 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
 
     /**
      * Remove a span from the current EditText and fire the appropriate callback
+     * Astro Edit (alee): Made this public so we can remove spans with a dialog that we control
      *
      * @param span TokenImageSpan to be removed
      */
-    private void removeSpan(TokenImageSpan span) {
+    public void removeSpan(TokenImageSpan span) {
         Editable text = getText();
         if (text == null) return;
 
