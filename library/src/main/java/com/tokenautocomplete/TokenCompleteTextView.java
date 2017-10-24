@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.AppCompatMultiAutoCompleteTextView;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -130,9 +131,9 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
      * Style params for chips details layout
      * Chips detail layout will pop up once user clicks on it
      */
-    private ColorStateList mChipDetailedTextColor;
-    private ColorStateList mChipDetailedDeleteIconColor;
-    private ColorStateList mChipDetailedBackgroundColor;
+    private int mChipDetailedTextColor;
+    private int mChipDetailedDeleteIconColor;
+    private int mChipDetailedBackgroundColor;
     private LetterTileProvider mLetterTileProvider;
 
     private int tokenLimit = -1;
@@ -244,9 +245,14 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
                     R.styleable.ChipView,
                     0, 0);
             try {
-                mChipDetailedTextColor = a.getColorStateList(R.styleable.ChipView_chip_detailed_textColor);
-                mChipDetailedBackgroundColor = a.getColorStateList(R.styleable.ChipView_chip_detailed_backgroundColor);
-                mChipDetailedDeleteIconColor = a.getColorStateList(R.styleable.ChipView_chip_detailed_deleteIconColor);
+                mChipDetailedTextColor = a.getColor(R.styleable.ChipView_chip_detailed_textColor,
+                        ContextCompat.getColor(getContext(), android.R.color.black));
+                mChipDetailedBackgroundColor = a.getColor(R.styleable.
+                                ChipView_chip_detailed_backgroundColor,
+                        ContextCompat.getColor(getContext(), android.R.color.holo_red_dark));
+                mChipDetailedDeleteIconColor = a.getColor(R.styleable.
+                                ChipView_chip_detailed_deleteIconColor,
+                        ContextCompat.getColor(getContext(), android.R.color.transparent));
             } finally {
                 a.recycle();
             }
@@ -292,26 +298,26 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
 
     /**
      * Helper method tp set chip detail background color.
-     * @param colorStateList
+     * @param color
      */
-    public void setChipDetailedBackgroundColor(ColorStateList colorStateList) {
-        mChipDetailedBackgroundColor = colorStateList;
+    public void setChipDetailedBackgroundColor(int color) {
+        mChipDetailedBackgroundColor = color;
     }
 
     /**
      * Helper method to set Chip detail text colo
-     * @param colorStateList
+     * @param color
      */
-    public void setChipDetailedTextColor(ColorStateList colorStateList) {
-        mChipDetailedTextColor = colorStateList;
+    public void setChipDetailedTextColor(int color) {
+        mChipDetailedTextColor = color;
     }
 
     /**
      * Helper method to set chip detail delete icon color
-     * @param colorStateList
+     * @param color
      */
-    public void setChipDetailedDeleteIconColor(ColorStateList colorStateList) {
-        mChipDetailedDeleteIconColor = colorStateList;
+    public void setChipDetailedDeleteIconColor(int color) {
+        mChipDetailedDeleteIconColor = color;
     }
 
     /********* end of setter helper methods */
@@ -1000,6 +1006,11 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
             mNameTextView = (TextView) findViewById(R.id.name);
             mInfoTextView = (TextView) findViewById(R.id.info);
             mDeleteButton = (ImageView) findViewById(R.id.delete_button);
+
+            // apply colors if any
+            mContentLayout.setBackgroundColor(mChipDetailedBackgroundColor);
+            mDeleteButton.setBackgroundColor(mChipDetailedDeleteIconColor);
+            mNameTextView.setTextColor(mChipDetailedTextColor);
 
             // now set the data
             if(chip.getAvatarUri() != null) {
