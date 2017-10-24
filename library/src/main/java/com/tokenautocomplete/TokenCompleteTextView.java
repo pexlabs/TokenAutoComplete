@@ -7,6 +7,9 @@ import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcel;
@@ -28,6 +31,7 @@ import android.text.TextWatcher;
 import android.text.method.QwertyKeyListener;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.util.Patterns;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -120,6 +124,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
     private boolean savingState = false;
     private boolean shouldFocusNext = false;
     private boolean allowCollapse = true;
+    private boolean mBlockCompletion = false;
 
     /**
      * Style params for chips details layout
@@ -1094,7 +1099,9 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
                 if (!allowDuplicates && objects.contains(object)) return;
                 if (tokenLimit != -1 && objects.size() == tokenLimit) return;
                 insertSpan(object, sourceText);
-                if (getText() != null && isFocused()) setSelection(getText().length());
+                if (getText() != null && isFocused()) {
+                    setSelection(getText().length());
+                }
             }
         });
     }
@@ -1474,7 +1481,8 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         }
 
         @Override
-        public void afterTextChanged(Editable text) {
+        public void afterTextChanged(final Editable text) {
+            if(mBlockCompletion) return;
             ArrayList<TokenImageSpan> spansCopy = new ArrayList<>(spansToRemove);
             for (TokenImageSpan token : spansCopy) {
                 int spanStart = text.getSpanStart(token);
@@ -1497,11 +1505,88 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
 
             clearSelections();
             updateHint();
+
+            // check for the last character, if last character is <Space> then we need to
+            // create a chip. But create a chip iff there is a valid email address before <Space>
+            final String lastToken = getLastTokenString(text);
+            commitChip(lastToken, text);
         }
 
         @Override
         public void onTextChanged(CharSequence s, int start, int before, int count) {
         }
+    }
+
+    private void commitChip(final String label, final Editable text) {
+        if(TextUtils.isEmpty(label.trim())) return;
+        mBlockCompletion = true;
+        if(!Patterns.EMAIL_ADDRESS.matcher(label.trim()).matches()) {
+            postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mBlockCompletion = false;
+                }
+            }, 10);
+            return;
+        }
+        ChipInterface chip = new ChipInterface() {
+            @Override
+            public Object getId() {
+                return new Object();
+            }
+
+            @Override
+            public Uri getAvatarUri() {
+                return null;
+            }
+
+            @Override
+            public Drawable getAvatarDrawable() {
+                return new BitmapDrawable(getContext().getResources(),
+                        mLetterTileProvider.getCircularLetterTile(label));
+            }
+
+            @Override
+            public String getEmailAddress() {
+                return label;
+            }
+
+            @Override
+            public String getPhoneNumber() {
+                return "";
+            }
+
+            @Override
+            public String getDisplayName() {
+                return label.split("@")[0];
+            }
+        };
+        addObject((T) chip);
+        postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mBlockCompletion = false;
+            }
+        }, 10);
+    }
+
+    private String getLastTokenString(final Editable text) {
+        String str = text.toString();
+        if(str.length() <= 1) {
+            return "";
+        }
+        if(!(str.charAt(str.length() - 1) == ' ' && str.charAt(str.length() - 2) != ',')) {
+            return "";
+        }
+        str = str.replace("\n", "");
+        while (str.contains("  ")) {
+            str = str.replace("  ", " ");
+        }
+        String tokens[] = str.split(",, ");
+        if(tokens.length == 0) return "";
+        final String lastToken = tokens[tokens.length-1];
+        if(TextUtils.isEmpty(lastToken.trim())) return "";
+        return lastToken;
     }
 
     protected ArrayList<Serializable> getSerializableObjects() {
