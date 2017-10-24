@@ -31,6 +31,9 @@ task jar(type: Jar) {
 
 dependencies {
     compile 'com.android.support:support-annotations:23.3.0'
+    compile 'com.android.support:appcompat-v7:25.3.0'
+    // circle image view
+    compile 'de.hdodenhof:circleimageview:2.1.0'
 }
 
 apply from: 'pexlabs-repo-push.gradle'

@@ -9,48 +9,51 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.tokenautocomplete.model.Chip;
+import com.tokenautocomplete.model.ChipInterface;
+
 import java.util.List;
 import java.util.Random;
 
-public class TokenActivity extends Activity implements TokenCompleteTextView.TokenListener {
+public class TokenActivity extends Activity implements TokenCompleteTextView.TokenListener<ChipInterface> {
     ContactsCompletionView completionView;
-    Person[] people;
-    ArrayAdapter<Person> adapter;
+    ChipInterface[] people;
+    ArrayAdapter<ChipInterface> adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        people = new Person[]{
-                new Person("Marshall Weir", "marshall@example.com"),
-                new Person("Margaret Smith", "margaret@example.com"),
-                new Person("Max Jordan", "max@example.com"),
-                new Person("Meg Peterson", "meg@example.com"),
-                new Person("Amanda Johnson", "amanda@example.com"),
-                new Person("Terry Anderson", "terry@example.com")
+        people = new ChipInterface[] {
+                new Chip(this, "first", "firstInfo"),
+                new Chip(this, "second", "secondInfo"),
+                new Chip(this, "third", "thirdInfo"),
+                new Chip(this, "fourth", "fourthInfo"),
+                new Chip(this, "fifth", "fifthInfo"),
+                new Chip(this, "sixth", "sixInfo"),
         };
 
-        adapter = new FilteredArrayAdapter<Person>(this, R.layout.person_layout, people) {
+        adapter = new FilteredArrayAdapter<ChipInterface>(this, R.layout.person_layout, people) {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
                 if (convertView == null) {
-
                     LayoutInflater l = (LayoutInflater)getContext().getSystemService(Activity.LAYOUT_INFLATER_SERVICE);
                     convertView = l.inflate(R.layout.person_layout, parent, false);
                 }
 
-                Person p = getItem(position);
-                ((TextView)convertView.findViewById(R.id.name)).setText(p.getName());
-                ((TextView)convertView.findViewById(R.id.email)).setText(p.getEmail());
+                ChipInterface p = getItem(position);
+                ((TextView)convertView.findViewById(R.id.name)).setText(p.getEmailAddress());
+                ((TextView)convertView.findViewById(R.id.email)).setText(p.getPhoneNumber());
 
                 return convertView;
             }
 
             @Override
-            protected boolean keepObject(Person person, String mask) {
+            protected boolean keepObject(ChipInterface person, String mask) {
                 mask = mask.toLowerCase();
-                return person.getName().toLowerCase().startsWith(mask) || person.getEmail().toLowerCase().startsWith(mask);
+                return person.getEmailAddress().toLowerCase().startsWith(mask)
+                        || person.getPhoneNumber().toLowerCase().startsWith(mask);
             }
         };
 
@@ -59,18 +62,11 @@ public class TokenActivity extends Activity implements TokenCompleteTextView.Tok
         completionView.setTokenListener(this);
         completionView.setTokenClickStyle(TokenCompleteTextView.TokenClickStyle.Select);
 
-
-        if (savedInstanceState == null) {
-            completionView.setPrefix("To: ");
-            completionView.addObject(people[0]);
-            completionView.addObject(people[1]);
-        }
-
         Button removeButton = (Button)findViewById(R.id.removeButton);
         removeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                List<Person> people = completionView.getObjects();
+                List<ChipInterface> people = completionView.getObjects();
                 if (people.size() > 0) {
                     completionView.removeObject(people.get(people.size() - 1));
                 }
@@ -99,17 +95,19 @@ public class TokenActivity extends Activity implements TokenCompleteTextView.Tok
 
 
     @Override
-    public void onTokenAdded(Object token) {
-        ((TextView)findViewById(R.id.lastEvent)).setText("Added: " + token);
+    public void onTokenAdded(ChipInterface token) {
+        ((TextView)findViewById(R.id.lastEvent)).setText("Added: " + token.getEmailAddress());
         updateTokenConfirmation();
     }
 
     @Override
-    public void onTokenRemoved(Object token) {
-        ((TextView)findViewById(R.id.lastEvent)).setText("Removed: " + token);
+    public void onTokenRemoved(ChipInterface token) {
+        ((TextView)findViewById(R.id.lastEvent)).setText("Removed: " + token.getEmailAddress());
         updateTokenConfirmation();
     }
 
     @Override
-    public void onTextChanged(String newText) { }
+    public void onTextChanged(String newText) {
+
+    }
 }

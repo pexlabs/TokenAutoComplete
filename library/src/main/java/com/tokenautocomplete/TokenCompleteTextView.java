@@ -1,18 +1,23 @@
 package com.tokenautocomplete;
 
 import android.annotation.TargetApi;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.res.ColorStateList;
+import android.content.res.TypedArray;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
+import android.support.v7.widget.AppCompatMultiAutoCompleteTextView;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.text.Layout;
+import android.text.NoCopySpan;
 import android.text.Selection;
 import android.text.SpanWatcher;
 import android.text.Spannable;
@@ -23,9 +28,12 @@ import android.text.TextWatcher;
 import android.text.method.QwertyKeyListener;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.ExtractedText;
@@ -34,24 +42,35 @@ import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputConnectionWrapper;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Filter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.MultiAutoCompleteTextView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import com.tokenautocomplete.example.R;
+import com.tokenautocomplete.model.ChipInterface;
+import com.tokenautocomplete.util.LetterTileProvider;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import de.hdodenhof.circleimageview.CircleImageView;
+
 /**
- * Gmail style auto complete view with easy token customization
+ * GMail style auto complete view with easy token customization
  * override getViewForObject to provide your token view
  * <br>
  * Created by mgod on 9/12/13.
  *
+ * Modified by Kaustubh : on 24/10/17
+ *
  * @author mgod
  */
-public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView implements TextView.OnEditorActionListener {
+public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoCompleteTextView
+        implements TextView.OnEditorActionListener {
     //Logging
     public static final String TAG = "TokenAutoComplete";
 
@@ -102,6 +121,15 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
     private boolean shouldFocusNext = false;
     private boolean allowCollapse = true;
 
+    /**
+     * Style params for chips details layout
+     * Chips detail layout will pop up once user clicks on it
+     */
+    private ColorStateList mChipDetailedTextColor;
+    private ColorStateList mChipDetailedDeleteIconColor;
+    private ColorStateList mChipDetailedBackgroundColor;
+    private LetterTileProvider mLetterTileProvider;
+
     private int tokenLimit = -1;
 
     /**
@@ -148,7 +176,9 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
         addListeners();
 
         setTextIsSelectable(false);
-        setLongClickable(false);
+        // by setting long clickable to false, long press options are enabled.
+        //setLongClickable(false);
+        mLetterTileProvider = new LetterTileProvider(getContext());
 
         //In theory, get the soft keyboard to not supply suggestions. very unreliable < API 11
         setInputType(getInputType() | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS | InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE);
@@ -203,6 +233,19 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
 
     public TokenCompleteTextView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        if(attrs != null) {
+            TypedArray a = getContext().getTheme().obtainStyledAttributes(
+                    attrs,
+                    R.styleable.ChipView,
+                    0, 0);
+            try {
+                mChipDetailedTextColor = a.getColorStateList(R.styleable.ChipView_chip_detailed_textColor);
+                mChipDetailedBackgroundColor = a.getColorStateList(R.styleable.ChipView_chip_detailed_backgroundColor);
+                mChipDetailedDeleteIconColor = a.getColorStateList(R.styleable.ChipView_chip_detailed_deleteIconColor);
+            } finally {
+                a.recycle();
+            }
+        }
         init();
     }
 
@@ -240,6 +283,34 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
         tokenizer = t;
     }
 
+    /********* start of setter helper methods for chip {@link ChipsDetailsDialog} layout */
+
+    /**
+     * Helper method tp set chip detail background color.
+     * @param colorStateList
+     */
+    public void setChipDetailedBackgroundColor(ColorStateList colorStateList) {
+        mChipDetailedBackgroundColor = colorStateList;
+    }
+
+    /**
+     * Helper method to set Chip detail text colo
+     * @param colorStateList
+     */
+    public void setChipDetailedTextColor(ColorStateList colorStateList) {
+        mChipDetailedTextColor = colorStateList;
+    }
+
+    /**
+     * Helper method to set chip detail delete icon color
+     * @param colorStateList
+     */
+    public void setChipDetailedDeleteIconColor(ColorStateList colorStateList) {
+        mChipDetailedDeleteIconColor = colorStateList;
+    }
+
+    /********* end of setter helper methods */
+
     /**
      * Set the action to be taken when a Token is removed
      *
@@ -260,7 +331,7 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
     }
 
     /**
-     * Set the listener that will be notified of changes in the Tokenlist
+     * Set the listener that will be notified of changes in the Token list
      *
      * @param l The TokenListener
      */
@@ -663,7 +734,11 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
                 TokenImageSpan[] links = text.getSpans(offset, offset, TokenImageSpan.class);
 
                 if (links.length > 0) {
-                    links[0].onClick();
+                    /**
+                     * this is a moment when we come to know that user has clicked any of the
+                     * chips in the layout, so invoke onClick with x & y coords
+                     */
+                    links[0].onClick(event.getX(), event.getY());
                     handled = true;
                 } else {
                     //We didn't click on a token, so if any are selected, we should clear that
@@ -871,6 +946,92 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
         }
         View tokenView = getViewForObject(obj);
         return new TokenImageSpan(tokenView, obj, (int) maxTextWidth());
+    }
+
+    /**
+     * Chips details dialog will be shown to user when user clicks on any of the chips in the layout
+     */
+    protected class ChipsDetailsDialog extends Dialog {
+
+        private TokenCompleteTextView.TokenImageSpan link;
+        private ChipInterface chip;
+        private int x;
+        private int y;
+        private RelativeLayout mContentLayout;
+        private CircleImageView mAvatarIconImageView;
+        private TextView mNameTextView;
+        private TextView mInfoTextView;
+        private ImageView mDeleteButton;
+
+        /**
+         * Constructor for ChipsDetailsDialog which is also known as ChipDetailsView
+         * This dialog is aligned w.r.t. clicked token considering x & y coordinates
+         * @param context : Appc context
+         * @param link : link is nothing but the current token on which user has clicked
+         * @param chip : the details of the token
+         * @param x : x coordinate of clicked token
+         * @param y : y coordinate of clicked token
+         */
+        public ChipsDetailsDialog(Context context, TokenCompleteTextView.TokenImageSpan link,
+                                  ChipInterface chip, int x, int y) {
+            super(context);
+            this.link = link;
+            this.chip = chip;
+            this.x = x;
+            this.y = y;
+        }
+
+        @Override
+        protected void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+
+            // Don't want the title on this dialog
+            requestWindowFeature(Window.FEATURE_NO_TITLE);
+            setContentView(R.layout.detailed_chip_view);
+
+            // init the views
+            mContentLayout = (RelativeLayout) findViewById(R.id.content);
+            mAvatarIconImageView = (CircleImageView) findViewById(R.id.avatar_icon);
+            mNameTextView = (TextView) findViewById(R.id.name);
+            mInfoTextView = (TextView) findViewById(R.id.info);
+            mDeleteButton = (ImageView) findViewById(R.id.delete_button);
+
+            // now set the data
+            if(chip.getAvatarUri() != null) {
+                mAvatarIconImageView.setImageURI(chip.getAvatarUri());
+            }
+            if(chip.getAvatarDrawable() != null) {
+                mAvatarIconImageView.setImageDrawable(chip.getAvatarDrawable());
+            }
+            mNameTextView.setText(chip.getEmailAddress());
+            if(chip.getPhoneNumber() != null) {
+                mInfoTextView.setVisibility(VISIBLE);
+                mInfoTextView.setText(chip.getPhoneNumber());
+            }
+            else {
+                mInfoTextView.setVisibility(GONE);
+            }
+
+            // remove the chip once clicked on delete image
+            mDeleteButton.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View v) {
+                    removeSpan(link);
+                    dismiss();
+                }
+            });
+
+            // Anchor the dialog to where the user clicked.
+            WindowManager.LayoutParams wmlp = getWindow().getAttributes();
+            wmlp.gravity = Gravity.TOP | Gravity.LEFT;
+            wmlp.x = x;
+            wmlp.y = y;
+
+            // Don't let the dialog look like we are stealing all focus from the user.
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+
+            // If the user clicks outside the dialog, we should dismiss it.
+            setCanceledOnTouchOutside(true);
+        }
     }
 
     @Override
@@ -1189,7 +1350,7 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
         invalidate();
     }
 
-    protected class TokenImageSpan extends ViewSpan {
+    protected class TokenImageSpan extends ViewSpan implements NoCopySpan {
         private T token;
 
         public TokenImageSpan(View d, T token, int maxWidth) {
@@ -1201,31 +1362,26 @@ public abstract class TokenCompleteTextView<T> extends MultiAutoCompleteTextView
             return this.token;
         }
 
-        public void onClick() {
+        public void onClick(float x, float y) {
             Editable text = getText();
             if (text == null) return;
 
             switch (tokenClickStyle) {
                 case Select:
                 case SelectDeselect:
+                    // at this point we know that user has clicked on the token, so just show
+                    // the detailed chip view
+                    ChipsDetailsDialog dialog = new ChipsDetailsDialog(getContext(), this,
+                            (ChipInterface) token, (int)x, (int)y);
+                    dialog.show();
+                    break;
 
-                    if (!view.isSelected()) {
-                        clearSelections();
-                        view.setSelected(true);
-                        break;
-                    }
-
-                    if (tokenClickStyle == TokenClickStyle.SelectDeselect || !isTokenRemovable(token)) {
-                        view.setSelected(false);
-                        invalidate();
-                        break;
-                    }
-                    //If the view is already selected, we want to delete it
                 case Delete:
                     if (isTokenRemovable(token)) {
                         removeSpan(this);
                     }
                     break;
+
                 case None:
                 default:
                     if (getSelectionStart() != text.getSpanEnd(this) + 1) {
