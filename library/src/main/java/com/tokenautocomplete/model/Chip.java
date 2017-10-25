@@ -10,10 +10,14 @@ package com.tokenautocomplete.model;
 
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-public class Chip implements ChipInterface {
+import java.io.Serializable;
+
+public class Chip implements ChipInterface, Serializable, Parcelable {
 
     private Object id;
     private Uri avatarUri;
@@ -66,6 +70,25 @@ public class Chip implements ChipInterface {
         this.info = info;
     }
 
+    protected Chip(Parcel in) {
+        avatarUri = in.readParcelable(Uri.class.getClassLoader());
+        label = in.readString();
+        info = in.readString();
+        displayName = in.readString();
+    }
+
+    public static final Creator<Chip> CREATOR = new Creator<Chip>() {
+        @Override
+        public Chip createFromParcel(Parcel in) {
+            return new Chip(in);
+        }
+
+        @Override
+        public Chip[] newArray(int size) {
+            return new Chip[size];
+        }
+    };
+
     @Override
     public Object getId() {
         return id;
@@ -94,5 +117,18 @@ public class Chip implements ChipInterface {
     @Override
     public String getDisplayName() {
         return displayName;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeParcelable(avatarUri, flags);
+        dest.writeString(label);
+        dest.writeString(info);
+        dest.writeString(displayName);
     }
 }

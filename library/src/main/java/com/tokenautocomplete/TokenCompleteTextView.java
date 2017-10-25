@@ -56,7 +56,6 @@ import com.tokenautocomplete.example.R;
 import com.tokenautocomplete.model.ChipInterface;
 import com.tokenautocomplete.util.LetterTileProvider;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -1602,32 +1601,32 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         return lastToken;
     }
 
-    protected ArrayList<Serializable> getSerializableObjects() {
-        ArrayList<Serializable> serializables = new ArrayList<>();
+    protected ArrayList<Parcelable> getParcelableObjects() {
+        ArrayList<Parcelable> parcelables = new ArrayList<>();
         for (Object obj : getObjects()) {
-            if (obj instanceof Serializable) {
-                serializables.add((Serializable) obj);
+            if (obj instanceof Parcelable) {
+                parcelables.add((Parcelable) obj);
             } else {
                 Log.e(TAG, "Unable to save '" + obj + "'");
             }
         }
-        if (serializables.size() != objects.size()) {
+        if (parcelables.size() != objects.size()) {
             String message = "You should make your objects Serializable or override\n" +
-                    "getSerializableObjects and convertSerializableArrayToObjectArray";
+                    "getParcelableObjects and convertParcelableArrayToObjectArray";
             Log.e(TAG, message);
         }
 
-        return serializables;
+        return parcelables;
     }
 
     @SuppressWarnings("unchecked")
-    protected ArrayList<T> convertSerializableArrayToObjectArray(ArrayList<Serializable> s) {
+    protected ArrayList<T> convertParcelableArrayToObjectArray(ArrayList<Parcelable> s) {
         return (ArrayList<T>) (ArrayList) s;
     }
 
     @Override
     public Parcelable onSaveInstanceState() {
-        ArrayList<Serializable> baseObjects = getSerializableObjects();
+        ArrayList<Parcelable> baseObjects = getParcelableObjects();
 
         //We don't want to save the listeners as part of the parent
         //onSaveInstanceState, so remove them first
@@ -1681,7 +1680,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         splitChar = ss.splitChar;
 
         addListeners();
-        for (T obj : convertSerializableArrayToObjectArray(ss.baseObjects)) {
+        for (T obj : convertParcelableArrayToObjectArray(ss.baseObjects)) {
             addObject(obj);
         }
 
@@ -1707,7 +1706,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         boolean performBestGuess;
         TokenClickStyle tokenClickStyle;
         TokenDeleteStyle tokenDeleteStyle;
-        ArrayList<Serializable> baseObjects;
+        ArrayList<Parcelable> baseObjects;
         char[] splitChar;
 
         @SuppressWarnings("unchecked")
@@ -1719,7 +1718,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
             performBestGuess = in.readInt() != 0;
             tokenClickStyle = TokenClickStyle.values()[in.readInt()];
             tokenDeleteStyle = TokenDeleteStyle.values()[in.readInt()];
-            baseObjects = (ArrayList<Serializable>) in.readSerializable();
+            baseObjects = in.readArrayList(null);
             splitChar = in.createCharArray();
         }
 
@@ -1736,7 +1735,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
             out.writeInt(performBestGuess ? 1 : 0);
             out.writeInt(tokenClickStyle.ordinal());
             out.writeInt(tokenDeleteStyle.ordinal());
-            out.writeSerializable(baseObjects);
+            out.writeList(baseObjects);
             out.writeCharArray(splitChar);
         }
 
