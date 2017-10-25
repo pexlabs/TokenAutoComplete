@@ -15,8 +15,13 @@ import com.tokenautocomplete.model.ChipInterface;
 import java.util.List;
 import java.util.Random;
 
+/**
+ * Demo or sample activity
+ */
 public class TokenActivity extends Activity implements TokenCompleteTextView.TokenListener<ChipInterface> {
+    // our completion view which extends TokenCompleteTextView
     ContactsCompletionView completionView;
+    // the list which should be shown as suggestion
     ChipInterface[] people;
     ArrayAdapter<ChipInterface> adapter;
 
@@ -26,12 +31,12 @@ public class TokenActivity extends Activity implements TokenCompleteTextView.Tok
         setContentView(R.layout.activity_main);
 
         people = new ChipInterface[] {
-                new Chip(this, "first", "firstInfo"),
-                new Chip(this, "second", "secondInfo"),
-                new Chip(this, "third", "thirdInfo"),
-                new Chip(this, "fourth", "fourthInfo"),
-                new Chip(this, "fifth", "fifthInfo"),
-                new Chip(this, "sixth", "sixInfo"),
+                new Chip(this, "first", "firstInfo", "First Name"),
+                new Chip(this, "second", "secondInfo", "Second Name"),
+                new Chip(this, "third", "thirdInfo", "Third Name"),
+                new Chip(this, "fourth", "fourthInfo", "Fourth Name"),
+                new Chip(this, "fifth", "fifthInfo", "Fifth Name"),
+                new Chip(this, "sixth", "sixInfo", "Sixth Name"),
         };
 
         adapter = new FilteredArrayAdapter<ChipInterface>(this, R.layout.person_layout, people) {
@@ -43,8 +48,8 @@ public class TokenActivity extends Activity implements TokenCompleteTextView.Tok
                 }
 
                 ChipInterface p = getItem(position);
-                ((TextView)convertView.findViewById(R.id.name)).setText(p.getEmailAddress());
-                ((TextView)convertView.findViewById(R.id.email)).setText(p.getPhoneNumber());
+                ((TextView)convertView.findViewById(R.id.name)).setText(p.getDisplayName());
+                ((TextView)convertView.findViewById(R.id.email)).setText(p.getEmailAddress());
 
                 return convertView;
             }
@@ -52,8 +57,8 @@ public class TokenActivity extends Activity implements TokenCompleteTextView.Tok
             @Override
             protected boolean keepObject(ChipInterface person, String mask) {
                 mask = mask.toLowerCase();
-                return person.getEmailAddress().toLowerCase().startsWith(mask)
-                        || person.getPhoneNumber().toLowerCase().startsWith(mask);
+                return person.getDisplayName().toLowerCase().startsWith(mask)
+                        || person.getEmailAddress().toLowerCase().startsWith(mask);
             }
         };
 

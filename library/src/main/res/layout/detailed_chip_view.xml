@@ -40,7 +40,7 @@
 
             <!-- name -->
             <TextView
-                android:id="@+id/name"
+                android:id="@+id/detail_email"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
@@ -51,7 +51,7 @@
 
             <!-- info -->
             <TextView
-                android:id="@+id/info"
+                android:id="@+id/detail_info"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
@@ -76,3 +76,5 @@
     </RelativeLayout>
 
 </RelativeLayout>
+
+<!-- This file has been pulled from MaterialChipsInput library as it is -->

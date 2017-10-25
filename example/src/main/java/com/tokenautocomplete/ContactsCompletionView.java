@@ -30,18 +30,24 @@ public class ContactsCompletionView extends TokenCompleteTextView<ChipInterface>
     }
 
     @Override
-    protected ChipView getViewForObject(final ChipInterface person) {
-        ChipView chipView1 = new ChipView(getContext());
-        chipView1.setLabel(person.getEmailAddress(), 0, ViewUtil.dpToPx(18));
-        chipView1.setPadding(2, 2, 2, 2);
-        chipView1.setHasAvatarIcon(true);
-        chipView1.setChipBorderColor(4, Color.BLUE);
-        return chipView1;
+    protected ChipView getViewForObject(final ChipInterface chipInterface) {
+        ChipView chipView = new ChipView(getContext());
+        chipView.setLabel(chipInterface.getEmailAddress(), 0, ViewUtil.dpToPx(18));
+        chipView.setPadding(2, 2, 2, 2);
+        chipView.setHasAvatarIcon(true);
+        chipView.setChipBorderColor(4, Color.BLUE);
+        return chipView;
     }
 
+    /**
+     * called when user presses enter/space while typing or on pasted string
+     * our responsibility to return correct chip at that particular position
+     * @param completionText the current text we are completing against
+     * @return
+     */
     @Override
     protected ChipInterface defaultObject(String completionText) {
         //Stupid simple example of guessing if we have an email or not
-        return new Chip(getContext(), "Some label", "Some info", "Some name");
+        return new Chip(getContext(), completionText, completionText, completionText);
     }
 }

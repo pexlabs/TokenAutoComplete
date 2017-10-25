@@ -1,3 +1,10 @@
+/**
+ * LetterTileProvider.java
+ *
+ * This file has been pulled from another library {MaterialChipsLayout} as it is.
+ */
+
+
 package com.tokenautocomplete.util;
 
 import android.content.Context;

@@ -9,3 +9,5 @@
     </item>
     <item android:drawable="@drawable/bg_chip_view" />
 </ripple>
+
+<!-- This file has been pulled from MaterialChipsInput library as it is -->

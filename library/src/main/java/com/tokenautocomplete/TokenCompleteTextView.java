@@ -9,7 +9,6 @@ import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcel;
@@ -125,15 +124,16 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
     private boolean savingState = false;
     private boolean shouldFocusNext = false;
     private boolean allowCollapse = true;
-    private boolean mBlockCompletion = false;
 
     /**
      * Style params for chips details layout
      * Chips detail layout will pop up once user clicks on it
      */
     private int mChipDetailedTextColor;
+    private int mChipDetailedSubTitleColor;
     private int mChipDetailedDeleteIconColor;
     private int mChipDetailedBackgroundColor;
+    private Drawable mChipDetailDeleteIcon;
     private LetterTileProvider mLetterTileProvider;
 
     private int tokenLimit = -1;
@@ -245,14 +245,21 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
                     R.styleable.ChipView,
                     0, 0);
             try {
+                // Astro specific initialization
+                // initialize colors of detailed view with the given values, if values are not
+                // provided then initialize with default values.
                 mChipDetailedTextColor = a.getColor(R.styleable.ChipView_chip_detailed_textColor,
-                        ContextCompat.getColor(getContext(), android.R.color.black));
+                        ContextCompat.getColor(getContext(), R.color.white));
                 mChipDetailedBackgroundColor = a.getColor(R.styleable.
                                 ChipView_chip_detailed_backgroundColor,
-                        ContextCompat.getColor(getContext(), android.R.color.holo_red_dark));
+                        ContextCompat.getColor(getContext(), R.color.astroViolet700));
                 mChipDetailedDeleteIconColor = a.getColor(R.styleable.
                                 ChipView_chip_detailed_deleteIconColor,
                         ContextCompat.getColor(getContext(), android.R.color.transparent));
+                mChipDetailedSubTitleColor = a.getColor(R.styleable.
+                                ChipView_chip_detailed_subTitleColor,
+                        ContextCompat.getColor(getContext(), R.color.astroBlack300));
+                mChipDetailDeleteIcon = a.getDrawable(R.styleable.ChipView_deleteIcon);
             } finally {
                 a.recycle();
             }
@@ -318,6 +325,22 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
      */
     public void setChipDetailedDeleteIconColor(int color) {
         mChipDetailedDeleteIconColor = color;
+    }
+
+    /**
+     * Helper method to set chip detail sub title color
+     * @param color
+     */
+    public void setChipDetailedSubTitleColor(int color) {
+        mChipDetailedSubTitleColor = color;
+    }
+
+    /**
+     * Helper method to set chip detail delete icon
+     * @param icon
+     */
+    public void setChipDetailDeleteIcon(Drawable icon) {
+        mChipDetailDeleteIcon = icon;
     }
 
     /********* end of setter helper methods */
@@ -962,16 +985,20 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
     /**
      * Chips details dialog will be shown to user when user clicks on any of the chips in the layout
      */
-    protected class ChipsDetailsDialog extends Dialog {
+    private class ChipsDetailsDialog extends Dialog {
 
-        private TokenCompleteTextView.TokenImageSpan link;
-        private ChipInterface chip;
-        private int x;
-        private int y;
+        // link or span on which user clicked
+        private TokenCompleteTextView.TokenImageSpan mLink;
+        // data about the clicked span / link
+        private ChipInterface mChip;
+        // x & y coordinates of clicked span / link
+        private int mXCoord;
+        private int mYCoord;
+        // the views of detailed chip layout
         private RelativeLayout mContentLayout;
         private CircleImageView mAvatarIconImageView;
-        private TextView mNameTextView;
-        private TextView mInfoTextView;
+        private TextView mEmailTextView;
+        private TextView mSubTextView;
         private ImageView mDeleteButton;
 
         /**
@@ -984,12 +1011,12 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
          * @param y : y coordinate of clicked token
          */
         public ChipsDetailsDialog(Context context, TokenCompleteTextView.TokenImageSpan link,
-                                  ChipInterface chip, int x, int y) {
+                ChipInterface chip, int x, int y) {
             super(context);
-            this.link = link;
-            this.chip = chip;
-            this.x = x;
-            this.y = y;
+            mLink = link;
+            mChip = chip;
+            mXCoord = x;
+            mYCoord = y;
         }
 
         @Override
@@ -1003,35 +1030,42 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
             // init the views
             mContentLayout = (RelativeLayout) findViewById(R.id.content);
             mAvatarIconImageView = (CircleImageView) findViewById(R.id.avatar_icon);
-            mNameTextView = (TextView) findViewById(R.id.name);
-            mInfoTextView = (TextView) findViewById(R.id.info);
+            mEmailTextView = (TextView) findViewById(R.id.detail_email);
+            mSubTextView = (TextView) findViewById(R.id.detail_info);
             mDeleteButton = (ImageView) findViewById(R.id.delete_button);
 
             // apply colors if any
             mContentLayout.setBackgroundColor(mChipDetailedBackgroundColor);
             mDeleteButton.setBackgroundColor(mChipDetailedDeleteIconColor);
-            mNameTextView.setTextColor(mChipDetailedTextColor);
+            mEmailTextView.setTextColor(mChipDetailedTextColor);
+            mSubTextView.setTextColor(mChipDetailedSubTitleColor);
 
             // now set the data
-            if(chip.getAvatarUri() != null) {
-                mAvatarIconImageView.setImageURI(chip.getAvatarUri());
+            // if avatar drawables are set then fetch them & proceed
+            // else create drawable from email address
+            if (mChip.getAvatarUri() != null) {
+                mAvatarIconImageView.setImageURI(mChip.getAvatarUri());
+            } else if (mChip.getAvatarDrawable() != null) {
+                mAvatarIconImageView.setImageDrawable(mChip.getAvatarDrawable());
+            } else {
+                mAvatarIconImageView.setImageDrawable(new BitmapDrawable(getResources(),
+                        mLetterTileProvider.getLetterTile(mChip.getEmailAddress())));
             }
-            if(chip.getAvatarDrawable() != null) {
-                mAvatarIconImageView.setImageDrawable(chip.getAvatarDrawable());
+            mEmailTextView.setText(mChip.getEmailAddress());
+            if (mChip.getPhoneNumber() != null) {
+                mSubTextView.setVisibility(VISIBLE);
+                mSubTextView.setText(mChip.getPhoneNumber());
+            } else {
+                mSubTextView.setVisibility(GONE);
             }
-            mNameTextView.setText(chip.getEmailAddress());
-            if(chip.getPhoneNumber() != null) {
-                mInfoTextView.setVisibility(VISIBLE);
-                mInfoTextView.setText(chip.getPhoneNumber());
-            }
-            else {
-                mInfoTextView.setVisibility(GONE);
+            if(mChipDetailDeleteIcon != null) {
+                mDeleteButton.setImageDrawable(mChipDetailDeleteIcon);
             }
 
             // remove the chip once clicked on delete image
             mDeleteButton.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
-                    removeSpan(link);
+                    removeSpan(mLink);
                     dismiss();
                 }
             });
@@ -1039,8 +1073,8 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
             // Anchor the dialog to where the user clicked.
             WindowManager.LayoutParams wmlp = getWindow().getAttributes();
             wmlp.gravity = Gravity.TOP | Gravity.LEFT;
-            wmlp.x = x;
-            wmlp.y = y;
+            wmlp.x = mXCoord;
+            wmlp.y = mYCoord;
 
             // Don't let the dialog look like we are stealing all focus from the user.
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
@@ -1204,7 +1238,14 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         }
 
         //Add 1 to the end because we put a " " at the end of the spans when adding them
-        text.delete(text.getSpanStart(span), text.getSpanEnd(span) + 1);
+        int spanStart = text.getSpanStart(span);
+        int spanEnd = text.getSpanEnd(span) + 1;
+        // delete text only if SpanStart is lesser then SpanEnd
+        // practically this situation should not occur, but if user is deleting very fast
+        // then there can be a syncing issue. So this avoids possible crash
+        if (spanEnd > spanStart) {
+            text.delete(text.getSpanStart(span), text.getSpanEnd(span) + 1);
+        }
 
         if (allowCollapse && !isFocused()) {
             updateCountSpan();
@@ -1493,7 +1534,6 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
 
         @Override
         public void afterTextChanged(final Editable text) {
-            if(mBlockCompletion) return;
             ArrayList<TokenImageSpan> spansCopy = new ArrayList<>(spansToRemove);
             for (TokenImageSpan token : spansCopy) {
                 int spanStart = text.getSpanStart(token);
@@ -1505,11 +1545,11 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
                 spanEnd--;
 
                 //Delete any extra split chars
-                if (spanEnd >= 0 && isSplitChar(text.charAt(spanEnd))) {
+                if (spanEnd >= 0 && spanEnd < text.length() && isSplitChar(text.charAt(spanEnd))) {
                     text.delete(spanEnd, spanEnd + 1);
                 }
 
-                if (spanStart >= 0 && isSplitChar(text.charAt(spanStart))) {
+                if (spanStart >= 0 && spanStart < text.length() && isSplitChar(text.charAt(spanStart))) {
                     text.delete(spanStart, spanStart + 1);
                 }
             }
@@ -1520,7 +1560,7 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
             // check for the last character, if last character is <Space> then we need to
             // create a chip. But create a chip iff there is a valid email address before <Space>
             final String lastToken = getLastTokenString(text);
-            commitChip(lastToken, text);
+            commitChip(lastToken);
         }
 
         @Override
@@ -1528,57 +1568,19 @@ public abstract class TokenCompleteTextView<T> extends AppCompatMultiAutoComplet
         }
     }
 
-    private void commitChip(final String label, final Editable text) {
-        if(TextUtils.isEmpty(label.trim())) return;
-        mBlockCompletion = true;
-        if(!Patterns.EMAIL_ADDRESS.matcher(label.trim()).matches()) {
-            postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    mBlockCompletion = false;
-                }
-            }, 10);
+    private void commitChip(final String label) {
+        // don't proceed if label is empty or null
+        if (TextUtils.isEmpty(label.trim())) {
             return;
         }
-        ChipInterface chip = new ChipInterface() {
-            @Override
-            public Object getId() {
-                return new Object();
-            }
-
-            @Override
-            public Uri getAvatarUri() {
-                return null;
-            }
-
-            @Override
-            public Drawable getAvatarDrawable() {
-                return new BitmapDrawable(getContext().getResources(),
-                        mLetterTileProvider.getCircularLetterTile(label));
-            }
-
-            @Override
-            public String getEmailAddress() {
-                return label;
-            }
-
-            @Override
-            public String getPhoneNumber() {
-                return "";
-            }
-
-            @Override
-            public String getDisplayName() {
-                return label.split("@")[0];
-            }
-        };
-        addObject((T) chip);
-        postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mBlockCompletion = false;
-            }
-        }, 10);
+        // don't proceed if the string is having invalid email address
+        // let user enter a valid email address
+        if (!Patterns.EMAIL_ADDRESS.matcher(label.trim()).matches()) {
+            return;
+        }
+        // now we know that, user has typed/pasted correct email, just call perform completion
+        // this will create a chip & handles clearing logic
+        performCompletion();
     }
 
     private String getLastTokenString(final Editable text) {

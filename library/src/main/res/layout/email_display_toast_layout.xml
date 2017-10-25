@@ -22,3 +22,5 @@
               android:clickable="true"/>
 
 </LinearLayout>
+
+<!-- This file has been pulled from MaterialChipsInput library as it is -->

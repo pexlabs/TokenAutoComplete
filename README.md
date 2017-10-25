@@ -82,51 +82,55 @@ public class ContactsCompletionView extends TokenCompleteTextView<Person> {
 }
 ```
 
-Layout code for contact_token
 
-```xml
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_height="wrap_content"
-    android:layout_width="wrap_content">
-
-    <TextView android:id="@+id/name"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@drawable/token_background"
-        android:padding="5dp"
-        android:textColor="@android:color/white"
-        android:textSize="18sp" />
-
-</LinearLayout>
-```
-
-Token backgound drawable
-
-```xml
-<shape xmlns:android="http://schemas.android.com/apk/res/android" >
-    <solid android:color="#ffafafaf" />
-    <corners
-        android:topLeftRadius="5dp"
-        android:bottomLeftRadius="5dp"
-        android:topRightRadius="5dp"
-        android:bottomRightRadius="5dp" />
-</shape>
-```
-
-Person object code
+Add your own models. Need to implement ChipInterface
 
 ```java
-public class Person implements Serializable {
-    private String name;
-    private String email;
+public class Chip implements ChipInterface , java.io.Serializable {
+    
+    private Object id;
+    private Uri avatarUri;
+    private Drawable avatarDrawable;
+    private String label;
+    private String info;
+    private String displayName;
 
-    public Person(String n, String e) { name = n; email = e; }
-
-    public String getName() { return name; }
-    public String getEmail() { return email; }
+    public Chip(@NonNull Object id, @Nullable Uri avatarUri, @NonNull String label, @Nullable String info) {
+        this.id = id;
+        this.avatarUri = avatarUri;
+        this.label = label;
+        this.info = info;
+    }
 
     @Override
-    public String toString() { return name; }
+    public Object getId() {
+        return id;
+    }
+
+    @Override
+    public Uri getAvatarUri() {
+        return avatarUri;
+    }
+
+    @Override
+    public Drawable getAvatarDrawable() {
+        return avatarDrawable;
+    }
+
+    @Override
+    public String getEmailAddress() {
+        return label;
+    }
+
+    @Override
+    public String getPhoneNumber() {
+        return info;
+    }
+
+    @Override
+    public String getDisplayName() {
+        return displayName;
+    }
 }
 ```
 
@@ -139,23 +143,23 @@ I'm adding some very stupid "contacts" to the app so you can see it work, but yo
 Activity code
 
 ```java
-public class TokenActivity extends Activity {
+public class TokenActivity extends Activity implements TokenCompleteTextView.TokenListener<ChipInterface> {
     ContactsCompletionView completionView;
-    Person[] people;
-    ArrayAdapter<Person> adapter;
+    ChipInterface[] people;
+    ArrayAdapter<ChipInterface> adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        people = new Person[]{
-                new Person("Marshall Weir", "marshall@example.com"),
-                new Person("Margaret Smith", "margaret@example.com"),
-                new Person("Max Jordan", "max@example.com"),
-                new Person("Meg Peterson", "meg@example.com"),
-                new Person("Amanda Johnson", "amanda@example.com"),
-                new Person("Terry Anderson", "terry@example.com")
+        people = new ChipInterface[] {
+                new Chip(this, "first", "firstInfo", "First Name"),
+                new Chip(this, "second", "secondInfo", "Second Name"),
+                new Chip(this, "third", "thirdInfo", "Third Name"),
+                new Chip(this, "fourth", "fourthInfo", "Fourth Name"),
+                new Chip(this, "fifth", "fifthInfo", "Fifth Name"),
+                new Chip(this, "sixth", "sixInfo", "Sixth Name"),
         };
 
         adapter = new ArrayAdapter<Person>(this, android.R.layout.simple_list_item_1, people);
@@ -163,6 +167,23 @@ public class TokenActivity extends Activity {
         completionView = (ContactsCompletionView)findViewById(R.id.searchView);
         completionView.setAdapter(adapter);
     }
+    
+    @Override
+    public void onTokenAdded(ChipInterface token) {
+        ((TextView)findViewById(R.id.lastEvent)).setText("Added: " + token.getEmailAddress());
+        updateTokenConfirmation();
+    }
+
+    @Override
+    public void onTokenRemoved(ChipInterface token) {
+        ((TextView)findViewById(R.id.lastEvent)).setText("Removed: " + token.getEmailAddress());
+        updateTokenConfirmation();
+    }
+
+    @Override
+    public void onTextChanged(String newText) {
+
+    }    
 }
 ```
 
