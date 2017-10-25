@@ -1,21 +1,21 @@
 package com.tokenautocomplete;
 
-import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
 import android.util.AttributeSet;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.LinearLayout;
-import android.widget.TextView;
+
+import com.tokenautocomplete.model.Chip;
+import com.tokenautocomplete.model.ChipInterface;
+import com.tokenautocomplete.util.ViewUtil;
 
 /**
  * Sample token completion view for basic contact info
- *
+ * <p>
  * Created on 9/12/13.
+ *
  * @author mgod
  */
-public class ContactsCompletionView extends TokenCompleteTextView<Person> {
+public class ContactsCompletionView extends TokenCompleteTextView<ChipInterface> {
 
     public ContactsCompletionView(Context context) {
         super(context);
@@ -30,23 +30,24 @@ public class ContactsCompletionView extends TokenCompleteTextView<Person> {
     }
 
     @Override
-    protected View getViewForObject(Person person) {
-
-        LayoutInflater l = (LayoutInflater)getContext().getSystemService(Activity.LAYOUT_INFLATER_SERVICE);
-        LinearLayout view = (LinearLayout)l.inflate(R.layout.contact_token, (ViewGroup)ContactsCompletionView.this.getParent(), false);
-        ((TextView)view.findViewById(R.id.name)).setText(person.getEmail());
-
-        return view;
+    protected ChipView getViewForObject(final ChipInterface chipInterface) {
+        ChipView chipView = new ChipView(getContext());
+        chipView.setLabel(chipInterface.getEmailAddress(), 0, ViewUtil.dpToPx(18));
+        chipView.setPadding(2, 2, 2, 2);
+        chipView.setHasAvatarIcon(true);
+        chipView.setChipBorderColor(4, Color.BLUE);
+        return chipView;
     }
 
+    /**
+     * called when user presses enter/space while typing or on pasted string
+     * our responsibility to return correct chip at that particular position
+     * @param completionText the current text we are completing against
+     * @return
+     */
     @Override
-    protected Person defaultObject(String completionText) {
+    protected ChipInterface defaultObject(String completionText) {
         //Stupid simple example of guessing if we have an email or not
-        int index = completionText.indexOf('@');
-        if (index == -1) {
-            return new Person(completionText, completionText.replace(" ", "") + "@example.com");
-        } else {
-            return new Person(completionText.substring(0, index), completionText);
-        }
+        return new Chip(getContext(), completionText, completionText, completionText);
     }
 }
