@@ -86,8 +86,8 @@ public class ContactsCompletionView extends TokenCompleteTextView<Person> {
 Add your own models. Need to implement ChipInterface
 
 ```java
-public class Chip implements ChipInterface , java.io.Serializable {
-    
+public class Chip implements ChipInterface, Serializable, Parcelable {
+
     private Object id;
     private Uri avatarUri;
     private Drawable avatarDrawable;
@@ -101,6 +101,62 @@ public class Chip implements ChipInterface , java.io.Serializable {
         this.label = label;
         this.info = info;
     }
+
+    public Chip(@NonNull Object id, @Nullable Drawable avatarDrawable, @NonNull String label, @Nullable String info) {
+        this.id = id;
+        this.avatarDrawable = avatarDrawable;
+        this.label = label;
+        this.info = info;
+    }
+
+    public Chip(@Nullable Uri avatarUri, @NonNull String label, @Nullable String info) {
+        this.avatarUri = avatarUri;
+        this.label = label;
+        this.info = info;
+    }
+
+    public Chip(@Nullable Drawable avatarDrawable, @NonNull String label, @Nullable String info) {
+        this.avatarDrawable = avatarDrawable;
+        this.label = label;
+        this.info = info;
+    }
+
+    public Chip(@NonNull Object id, @NonNull String label, @Nullable String info) {
+        this.id = id;
+        this.label = label;
+        this.info = info;
+    }
+
+    public Chip(@NonNull Object id, @NonNull String label, @Nullable String info, @NonNull String displayName) {
+        this.id = id;
+        this.label = label;
+        this.info = info;
+        this.displayName = displayName;
+    }
+
+    public Chip(@NonNull String label, @Nullable String info) {
+        this.label = label;
+        this.info = info;
+    }
+
+    protected Chip(Parcel in) {
+        avatarUri = in.readParcelable(Uri.class.getClassLoader());
+        label = in.readString();
+        info = in.readString();
+        displayName = in.readString();
+    }
+
+    public static final Creator<Chip> CREATOR = new Creator<Chip>() {
+        @Override
+        public Chip createFromParcel(Parcel in) {
+            return new Chip(in);
+        }
+
+        @Override
+        public Chip[] newArray(int size) {
+            return new Chip[size];
+        }
+    };
 
     @Override
     public Object getId() {
@@ -131,10 +187,23 @@ public class Chip implements ChipInterface , java.io.Serializable {
     public String getDisplayName() {
         return displayName;
     }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeParcelable(avatarUri, flags);
+        dest.writeString(label);
+        dest.writeString(info);
+        dest.writeString(displayName);
+    }
 }
 ```
 
-Note that the class implements ```Serializable```. In order to restore the view state properly, the ```TokenCompleteTextView``` needs to be able to save and restore your objects from disk. If your objects cannot be made ```Serializable```, please look at [restoring the view state](#restoring-the-view-state).
+Note that the class implements ```Parcelable```. In order to restore the view state properly, the ```TokenCompleteTextView``` needs to be able to save and restore your objects from disk. 
 
 ### Create a layout and activity for your completion view
 
